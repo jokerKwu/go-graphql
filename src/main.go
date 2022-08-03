@@ -5,9 +5,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"main/common"
+	"main/common/db"
 )
 
 func main() {
+	if err := db.InitMongo(); err != nil {
+		fmt.Println(err)
+	}
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
