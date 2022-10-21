@@ -4,6 +4,7 @@
 # GraphQL 스키마를 추가할 파일입니다.
 
 type User {
+    _id: String
     name: String!
     age: Int!
     phone: String!
@@ -16,7 +17,8 @@ input NewUser {
 }
 
 type Query {
-    Users: [User!]!
+    user(_id: String!): User!
+    users: [User!]!
 }
 
 type Mutation {

@@ -9,6 +9,7 @@ type NewUser struct {
 }
 
 type User struct {
+	ID    string `json:"_id"`
 	Name  string `json:"name"`
 	Age   int    `json:"age"`
 	Phone string `json:"phone"`
