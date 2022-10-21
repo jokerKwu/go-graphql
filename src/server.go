@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"main/common/db"
 	"main/graph"
 	"main/graph/generated"
 	"net/http"
@@ -14,6 +16,9 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	if err := db.InitMongo(); err != nil {
+		fmt.Println(err)
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

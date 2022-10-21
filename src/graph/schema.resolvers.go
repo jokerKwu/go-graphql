@@ -6,24 +6,57 @@ package graph
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"main/common/db"
 	"main/graph/generated"
 	"main/graph/model"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: CreateUser - createUser"))
+	res, err := db.UserCollection.InsertOne(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(res.InsertedID)
+	result := &model.User{
+		ID:    res.InsertedID.(primitive.ObjectID).String(),
+		Name:  input.Name,
+		Age:   input.Age,
+		Phone: input.Phone,
+	}
+	return result, nil
+}
+
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	userID, _ := primitive.ObjectIDFromHex(id)
+	findData := bson.D{{"_id", userID}}
+	var user *model.User
+	err := db.UserCollection.FindOne(ctx, findData).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 // Users is the resolver for the Users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	var users []*model.User
-	dummyUser := model.User{
-		Name:  "ryan",
-		Phone: "01051105508",
-		Age:   32,
+	cur, err := db.UserCollection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
 	}
-	users = append(users, &dummyUser)
+	users := make([]*model.User, 0, cur.RemainingBatchLength())
+	for cur.Next(ctx) {
+		var curUser *model.User
+		err := cur.Decode(&curUser)
+		if err != nil {
+			fmt.Println(err)
+		}
+		users = append(users, curUser)
+	}
 	return users, nil
 }
 
