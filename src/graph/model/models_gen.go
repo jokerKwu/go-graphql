@@ -2,6 +2,35 @@
 
 package model
 
+type Address struct {
+	Receiver string `json:"receiver"`
+	Address  string `json:"address"`
+	Detail   string `json:"detail"`
+	PinCode  string `json:"pinCode"`
+	Tel      string `json:"tel"`
+	Request  string `json:"request"`
+}
+
+type AddressBook struct {
+	ID        string   `json:"id" bson:"_id"`
+	IsDefault bool     `json:"isDefault"`
+	Address   *Address `json:"address"`
+}
+
+type NewAddress struct {
+	Receiver string `json:"receiver"`
+	Address  string `json:"address"`
+	Detail   string `json:"detail"`
+	PinCode  string `json:"pinCode"`
+	Tel      string `json:"tel"`
+	Request  string `json:"request"`
+}
+
+type NewAddressBook struct {
+	IsDefault bool        `json:"isDefault"`
+	Address   *NewAddress `json:"address"`
+}
+
 type NewUser struct {
 	Name  string `json:"name"`
 	Age   int    `json:"age"`
@@ -9,7 +38,7 @@ type NewUser struct {
 }
 
 type User struct {
-	ID    string `json:"_id"`
+	ID    string `json:"id" bson:"_id"`
 	Name  string `json:"name"`
 	Age   int    `json:"age"`
 	Phone string `json:"phone"`

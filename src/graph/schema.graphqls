@@ -4,10 +4,23 @@
 # GraphQL 스키마를 추가할 파일입니다.
 
 type User {
-    _id: String
+    _id: String!
     name: String!
     age: Int!
     phone: String!
+}
+type AddressBook {
+    _id: String!
+    isDefault: Boolean!
+    address: Address!
+}
+type Address {
+    receiver: String!
+    address: String!
+    detail: String!
+    pinCode: String!
+    tel: String!
+    request: String!
 }
 
 input NewUser {
@@ -16,11 +29,28 @@ input NewUser {
     phone: String!
 }
 
+input NewAddressBook {
+    isDefault: Boolean!
+    address: NewAddress!
+}
+input NewAddress {
+    receiver: String!
+    address: String!
+    detail: String!
+    pinCode: String!
+    tel: String!
+    request: String!
+}
+
 type Query {
     user(_id: String!): User!
     users: [User!]!
+    addressBook(_id: String!): AddressBook!
+    addressBooks: [AddressBook!]!
 }
 
 type Mutation {
     createUser(input: NewUser!): User!
+    createAddressBook(input: NewAddressBook!): AddressBook!
 }
+

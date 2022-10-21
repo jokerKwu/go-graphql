@@ -6,12 +6,12 @@ package graph
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"main/common/db"
 	"main/graph/generated"
 	"main/graph/model"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // CreateUser is the resolver for the createUser field.
@@ -26,6 +26,28 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		Name:  input.Name,
 		Age:   input.Age,
 		Phone: input.Phone,
+	}
+	return result, nil
+}
+
+// CreateAddressBook is the resolver for the createAddressBook field.
+func (r *mutationResolver) CreateAddressBook(ctx context.Context, input model.NewAddressBook) (*model.AddressBook, error) {
+	res, err := db.AddressBookCollection.InsertOne(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(res.InsertedID)
+	result := &model.AddressBook{
+		ID: res.InsertedID.(primitive.ObjectID).String(),
+		Address: &model.Address{
+			Receiver: input.Address.Receiver,
+			Address:  input.Address.Address,
+			Detail:   input.Address.Detail,
+			PinCode:  input.Address.PinCode,
+			Tel:      input.Address.Tel,
+			Request:  input.Address.Request,
+		},
+		IsDefault: input.IsDefault,
 	}
 	return result, nil
 }
@@ -58,6 +80,37 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		users = append(users, curUser)
 	}
 	return users, nil
+}
+
+// AddressBook is the resolver for the addressBook field.
+func (r *queryResolver) AddressBook(ctx context.Context, id string) (*model.AddressBook, error) {
+	aID, _ := primitive.ObjectIDFromHex(id)
+	findData := bson.D{{"_id", aID}}
+	var addressBook *model.AddressBook
+	err := db.AddressBookCollection.FindOne(ctx, findData).Decode(&addressBook)
+	if err != nil {
+		return nil, err
+	}
+	return addressBook, nil
+}
+
+// AddressBooks is the resolver for the addressBooks field.
+func (r *queryResolver) AddressBooks(ctx context.Context) ([]*model.AddressBook, error) {
+	cur, err := db.AddressBookCollection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	addressBooks := make([]*model.AddressBook, 0, cur.RemainingBatchLength())
+	for cur.Next(ctx) {
+		var curAddressBook *model.AddressBook
+		err := cur.Decode(&curAddressBook)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(curAddressBook)
+		addressBooks = append(addressBooks, curAddressBook)
+	}
+	return addressBooks, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
