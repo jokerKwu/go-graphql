@@ -9,11 +9,6 @@ type User {
     age: Int!
     phone: String!
 }
-type AddressBook {
-    _id: String!
-    isDefault: Boolean!
-    address: Address!
-}
 type Address {
     receiver: String!
     address: String!
@@ -21,6 +16,34 @@ type Address {
     pinCode: String!
     tel: String!
     request: String!
+}
+type AddressBook {
+    _id: String!
+    isDefault: Boolean!
+    address: Address!
+}
+type ProductInfo {
+    productID: String!
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
+}
+type Product {
+    count: Int!
+    product: ProductInfo!
+}
+
+input NewProductInfo {
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
+}
+
+input NewProduct {
+    productID: String!
+    count: Int!
 }
 
 input NewUser {
@@ -47,10 +70,13 @@ type Query {
     users: [User!]!
     addressBook(_id: String!): AddressBook!
     addressBooks: [AddressBook!]!
+    products: [ProductInfo!]!
+    product(_id: String!): ProductInfo!
 }
 
 type Mutation {
     createUser(input: NewUser!): User!
     createAddressBook(input: NewAddressBook!): AddressBook!
+    createProduct(input: NewProductInfo!): ProductInfo!
 }
 

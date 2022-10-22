@@ -12,6 +12,7 @@ import (
 var (
 	UserCollection        *mongo.Collection
 	AddressBookCollection *mongo.Collection
+	ProductCollection     *mongo.Collection
 )
 
 var MongoClient *mongo.Client
@@ -39,6 +40,7 @@ func InitCollection() error {
 	mongo := MongoClient.Database("medical_dev")
 	UserCollection = mongo.Collection("user")
 	AddressBookCollection = mongo.Collection("addressBook")
+	ProductCollection = mongo.Collection("productInfo")
 	return nil
 }
 

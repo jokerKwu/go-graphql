@@ -52,6 +52,21 @@ func (r *mutationResolver) CreateAddressBook(ctx context.Context, input model.Ne
 	return result, nil
 }
 
+// CreateProduct is the resolver for the createProduct field.
+func (r *mutationResolver) CreateProduct(ctx context.Context, input model.NewProductInfo) (*model.ProductInfo, error) {
+	_, err := db.ProductCollection.InsertOne(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	result := &model.ProductInfo{
+		Name:        input.Name,
+		Description: input.Description,
+		PerAmount:   input.PerAmount,
+		ImgURL:      input.ImgURL,
+	}
+	return result, nil
+}
+
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	userID, _ := primitive.ObjectIDFromHex(id)
@@ -71,6 +86,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		return nil, err
 	}
 	users := make([]*model.User, 0, cur.RemainingBatchLength())
+	defer cur.Close(ctx)
 	for cur.Next(ctx) {
 		var curUser *model.User
 		err := cur.Decode(&curUser)
@@ -101,6 +117,7 @@ func (r *queryResolver) AddressBooks(ctx context.Context) ([]*model.AddressBook,
 		return nil, err
 	}
 	addressBooks := make([]*model.AddressBook, 0, cur.RemainingBatchLength())
+	defer cur.Close(ctx)
 	for cur.Next(ctx) {
 		var curAddressBook *model.AddressBook
 		err := cur.Decode(&curAddressBook)
@@ -111,6 +128,38 @@ func (r *queryResolver) AddressBooks(ctx context.Context) ([]*model.AddressBook,
 		addressBooks = append(addressBooks, curAddressBook)
 	}
 	return addressBooks, nil
+}
+
+// Products is the resolver for the products field.
+func (r *queryResolver) Products(ctx context.Context) ([]*model.ProductInfo, error) {
+	cur, err := db.ProductCollection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	products := make([]*model.ProductInfo, 0, cur.RemainingBatchLength())
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var curProduct *model.ProductInfo
+		err := cur.Decode(&curProduct)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(curProduct)
+		products = append(products, curProduct)
+	}
+	return products, nil
+}
+
+// Product is the resolver for the product field.
+func (r *queryResolver) Product(ctx context.Context, id string) (*model.ProductInfo, error) {
+	productID, _ := primitive.ObjectIDFromHex(id)
+	findData := bson.D{{"_id", productID}}
+	var productDTO *model.ProductInfo
+	err := db.ProductCollection.FindOne(ctx, findData).Decode(&productDTO)
+	if err != nil {
+		return nil, err
+	}
+	return productDTO, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
