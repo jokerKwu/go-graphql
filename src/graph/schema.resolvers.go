@@ -67,6 +67,11 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.NewPro
 	return result, nil
 }
 
+// CreateService is the resolver for the createService field.
+func (r *mutationResolver) CreateService(ctx context.Context, input model.NewService) (*model.Service, error) {
+	panic(fmt.Errorf("not implemented: CreateService - createService"))
+}
+
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	userID, _ := primitive.ObjectIDFromHex(id)
@@ -162,6 +167,16 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.ProductI
 	return productDTO, nil
 }
 
+// Service is the resolver for the service field.
+func (r *queryResolver) Service(ctx context.Context, id string) (*model.Service, error) {
+	panic(fmt.Errorf("not implemented: Service - service"))
+}
+
+// Services is the resolver for the services field.
+func (r *queryResolver) Services(ctx context.Context) ([]*model.Service, error) {
+	panic(fmt.Errorf("not implemented: Services - services"))
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -170,11 +185,3 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-type userResolver struct{ *Resolver }

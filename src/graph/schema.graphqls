@@ -3,6 +3,8 @@
 # https://gqlgen.com/getting-started/
 # GraphQL 스키마를 추가할 파일입니다.
 
+# 스키마 정의 타입
+
 type User {
     _id: String!
     name: String!
@@ -32,6 +34,25 @@ type ProductInfo {
 type Product {
     count: Int!
     product: ProductInfo!
+}
+type Service {
+    _id: String!
+    products: [ServiceProduct!]!
+    state: Int!
+}
+type ServiceProduct {
+    product : ProductInfo
+    count: Int!
+}
+
+# 인풉 타입
+input NewService {
+    state: Int!
+    products: [NewServiceProduct!]!
+}
+input NewServiceProduct {
+    productID: String!
+    count: Int!
 }
 
 input NewProductInfo {
@@ -65,6 +86,8 @@ input NewAddress {
     request: String!
 }
 
+# 쿼리 타입
+
 type Query {
     user(_id: String!): User!
     users: [User!]!
@@ -72,11 +95,16 @@ type Query {
     addressBooks: [AddressBook!]!
     products: [ProductInfo!]!
     product(_id: String!): ProductInfo!
+    service(_id: String!): Service!
+    services: [Service!]!
 }
+
+# 뮤테이션 타입
 
 type Mutation {
     createUser(input: NewUser!): User!
     createAddressBook(input: NewAddressBook!): AddressBook!
     createProduct(input: NewProductInfo!): ProductInfo!
+    createService(input: NewService!): Service!
 }
 
