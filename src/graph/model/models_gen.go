@@ -21,21 +21,21 @@ type NewAddress struct {
 	Receiver string `json:"receiver"`
 	Address  string `json:"address"`
 	Detail   string `json:"detail"`
-	PinCode  string `json:"pinCode"`
+	PinCode  string `json:"pinCode" bson:"pinCode"`
 	Tel      string `json:"tel"`
 	Request  string `json:"request"`
 }
 
 type NewAddressBook struct {
-	IsDefault bool        `json:"isDefault"`
+	IsDefault bool        `json:"isDefault" bson:"isDefault"`
 	Address   *NewAddress `json:"address"`
 }
 
 type NewProductInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	PerAmount   int    `json:"perAmount"`
-	ImgURL      string `json:"imgUrl"`
+	PerAmount   int    `json:"perAmount" bson:"perAmount"`
+	ImgURL      string `json:"imgUrl" bson:"imgURL"`
 }
 
 type NewService struct {
@@ -44,7 +44,7 @@ type NewService struct {
 }
 
 type NewServiceProduct struct {
-	ProductID string `json:"productID"`
+	ProductID string `json:"productID" bson:"productID"`
 	Count     int    `json:"count"`
 }
 
@@ -69,7 +69,7 @@ type Service struct {
 }
 
 type ServiceProduct struct {
-	ProductID string `json:"productID"`
+	ProductID string `json:"productID" bson:"productID"`
 	Count     int    `json:"count"`
 }
 
