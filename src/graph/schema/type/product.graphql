@@ -1,0 +1,14 @@
+type ProductInfo {
+    id: String!
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
+}
+
+input NewProductInfo {
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
+}

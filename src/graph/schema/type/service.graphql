@@ -1,0 +1,18 @@
+type Service {
+    id: String!
+    products: [ServiceProduct!]!
+    state: Int!
+}
+type ServiceProduct {
+    productID : String!
+    count: Int!
+}
+
+input NewService {
+    state: Int!
+    products: [NewServiceProduct!]!
+}
+input NewServiceProduct {
+    productID: String!
+    count: Int!
+}

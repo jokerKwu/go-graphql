@@ -1,0 +1,6 @@
+type Mutation {
+    createUser(input: NewUser!): User!
+    createAddressBook(input: NewAddressBook!): AddressBook!
+    createProduct(input: NewProductInfo!): ProductInfo!
+    createService(input: NewService!): Boolean!
+}

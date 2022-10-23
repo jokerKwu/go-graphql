@@ -12,7 +12,7 @@ type Address struct {
 }
 
 type AddressBook struct {
-	ID        string   `json:"_id"`
+	ID        string   `json:"id" bson:"_id"`
 	IsDefault bool     `json:"isDefault"`
 	Address   *Address `json:"address"`
 }
@@ -29,11 +29,6 @@ type NewAddress struct {
 type NewAddressBook struct {
 	IsDefault bool        `json:"isDefault"`
 	Address   *NewAddress `json:"address"`
-}
-
-type NewProduct struct {
-	ProductID string `json:"productID"`
-	Count     int    `json:"count"`
 }
 
 type NewProductInfo struct {
@@ -59,13 +54,8 @@ type NewUser struct {
 	Phone string `json:"phone"`
 }
 
-type Product struct {
-	Count   int          `json:"count"`
-	Product *ProductInfo `json:"product"`
-}
-
 type ProductInfo struct {
-	ProductID   string `json:"productID"`
+	ID          string `json:"id" bson:"_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	PerAmount   int    `json:"perAmount"`
@@ -73,18 +63,18 @@ type ProductInfo struct {
 }
 
 type Service struct {
-	ID       string            `json:"_id"`
+	ID       string            `json:"id" bson:"_id"`
 	Products []*ServiceProduct `json:"products"`
 	State    int               `json:"state"`
 }
 
 type ServiceProduct struct {
-	Product *ProductInfo `json:"product"`
-	Count   int          `json:"count"`
+	ProductID string `json:"productID"`
+	Count     int    `json:"count"`
 }
 
 type User struct {
-	ID    string `json:"_id"`
+	ID    string `json:"id" bson:"_id"`
 	Name  string `json:"name"`
 	Age   int    `json:"age"`
 	Phone string `json:"phone"`

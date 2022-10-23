@@ -13,6 +13,7 @@ var (
 	UserCollection        *mongo.Collection
 	AddressBookCollection *mongo.Collection
 	ProductCollection     *mongo.Collection
+	ServiceCollection     *mongo.Collection
 )
 
 var MongoClient *mongo.Client
@@ -41,6 +42,7 @@ func InitCollection() error {
 	UserCollection = mongo.Collection("user")
 	AddressBookCollection = mongo.Collection("addressBook")
 	ProductCollection = mongo.Collection("productInfo")
+	ServiceCollection = mongo.Collection("service")
 	return nil
 }
 

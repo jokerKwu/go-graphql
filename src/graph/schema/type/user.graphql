@@ -1,0 +1,14 @@
+type User {
+    id: String!
+    name: String!
+    age: Int!
+    phone: String!
+}
+
+
+input NewUser {
+    name: String!
+    age: Int!
+    phone: String!
+}
+

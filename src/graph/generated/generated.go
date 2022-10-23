@@ -66,17 +66,12 @@ type ComplexityRoot struct {
 		CreateUser        func(childComplexity int, input model.NewUser) int
 	}
 
-	Product struct {
-		Count   func(childComplexity int) int
-		Product func(childComplexity int) int
-	}
-
 	ProductInfo struct {
 		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
 		ImgURL      func(childComplexity int) int
 		Name        func(childComplexity int) int
 		PerAmount   func(childComplexity int) int
-		ProductID   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -97,8 +92,8 @@ type ComplexityRoot struct {
 	}
 
 	ServiceProduct struct {
-		Count   func(childComplexity int) int
-		Product func(childComplexity int) int
+		Count     func(childComplexity int) int
+		ProductID func(childComplexity int) int
 	}
 
 	User struct {
@@ -113,7 +108,7 @@ type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUser) (*model.User, error)
 	CreateAddressBook(ctx context.Context, input model.NewAddressBook) (*model.AddressBook, error)
 	CreateProduct(ctx context.Context, input model.NewProductInfo) (*model.ProductInfo, error)
-	CreateService(ctx context.Context, input model.NewService) (*model.Service, error)
+	CreateService(ctx context.Context, input model.NewService) (bool, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context, id string) (*model.User, error)
@@ -190,7 +185,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AddressBook.Address(childComplexity), true
 
-	case "AddressBook._id":
+	case "AddressBook.id":
 		if e.complexity.AddressBook.ID == nil {
 			break
 		}
@@ -252,26 +247,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.NewUser)), true
 
-	case "Product.count":
-		if e.complexity.Product.Count == nil {
-			break
-		}
-
-		return e.complexity.Product.Count(childComplexity), true
-
-	case "Product.product":
-		if e.complexity.Product.Product == nil {
-			break
-		}
-
-		return e.complexity.Product.Product(childComplexity), true
-
 	case "ProductInfo.description":
 		if e.complexity.ProductInfo.Description == nil {
 			break
 		}
 
 		return e.complexity.ProductInfo.Description(childComplexity), true
+
+	case "ProductInfo.id":
+		if e.complexity.ProductInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.ProductInfo.ID(childComplexity), true
 
 	case "ProductInfo.imgUrl":
 		if e.complexity.ProductInfo.ImgURL == nil {
@@ -293,13 +281,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProductInfo.PerAmount(childComplexity), true
-
-	case "ProductInfo.productID":
-		if e.complexity.ProductInfo.ProductID == nil {
-			break
-		}
-
-		return e.complexity.ProductInfo.ProductID(childComplexity), true
 
 	case "Query.addressBook":
 		if e.complexity.Query.AddressBook == nil {
@@ -377,7 +358,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Users(childComplexity), true
 
-	case "Service._id":
+	case "Service.id":
 		if e.complexity.Service.ID == nil {
 			break
 		}
@@ -405,12 +386,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ServiceProduct.Count(childComplexity), true
 
-	case "ServiceProduct.product":
-		if e.complexity.ServiceProduct.Product == nil {
+	case "ServiceProduct.productID":
+		if e.complexity.ServiceProduct.ProductID == nil {
 			break
 		}
 
-		return e.complexity.ServiceProduct.Product(childComplexity), true
+		return e.complexity.ServiceProduct.ProductID(childComplexity), true
 
 	case "User.age":
 		if e.complexity.User.Age == nil {
@@ -419,7 +400,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Age(childComplexity), true
 
-	case "User._id":
+	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
 		}
@@ -450,7 +431,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputNewAddress,
 		ec.unmarshalInputNewAddressBook,
-		ec.unmarshalInputNewProduct,
 		ec.unmarshalInputNewProductInfo,
 		ec.unmarshalInputNewService,
 		ec.unmarshalInputNewServiceProduct,
@@ -515,19 +495,29 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../schema.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-# GraphQL 스키마를 추가할 파일입니다.
-
-# 스키마 정의 타입
-
-type User {
-    _id: String!
-    name: String!
-    age: Int!
-    phone: String!
+	{Name: "../schema/mutation.graphql", Input: `type Mutation {
+    createUser(input: NewUser!): User!
+    createAddressBook(input: NewAddressBook!): AddressBook!
+    createProduct(input: NewProductInfo!): ProductInfo!
+    createService(input: NewService!): Boolean!
+}`, BuiltIn: false},
+	{Name: "../schema/query.graphql", Input: `type Query {
+    user(_id: String!): User!
+    users: [User!]!
+    addressBook(_id: String!): AddressBook!
+    addressBooks: [AddressBook!]!
+    products: [ProductInfo!]!
+    product(_id: String!): ProductInfo!
+    service(_id: String!): Service!
+    services: [Service!]!
+}`, BuiltIn: false},
+	{Name: "../schema/type/addressBook.graphql", Input: `
+type AddressBook {
+    id: String!
+    isDefault: Boolean!
+    address: Address!
 }
+
 type Address {
     receiver: String!
     address: String!
@@ -535,59 +525,6 @@ type Address {
     pinCode: String!
     tel: String!
     request: String!
-}
-type AddressBook {
-    _id: String!
-    isDefault: Boolean!
-    address: Address!
-}
-type ProductInfo {
-    productID: String!
-    name: String!
-    description: String!
-    perAmount: Int!
-    imgUrl: String!
-}
-type Product {
-    count: Int!
-    product: ProductInfo!
-}
-type Service {
-    _id: String!
-    products: [ServiceProduct!]!
-    state: Int!
-}
-type ServiceProduct {
-    product : ProductInfo
-    count: Int!
-}
-
-# 인풉 타입
-input NewService {
-    state: Int!
-    products: [NewServiceProduct!]!
-}
-input NewServiceProduct {
-    productID: String!
-    count: Int!
-}
-
-input NewProductInfo {
-    name: String!
-    description: String!
-    perAmount: Int!
-    imgUrl: String!
-}
-
-input NewProduct {
-    productID: String!
-    count: Int!
-}
-
-input NewUser {
-    name: String!
-    age: Int!
-    phone: String!
 }
 
 input NewAddressBook {
@@ -602,27 +539,52 @@ input NewAddress {
     tel: String!
     request: String!
 }
-
-# 쿼리 타입
-
-type Query {
-    user(_id: String!): User!
-    users: [User!]!
-    addressBook(_id: String!): AddressBook!
-    addressBooks: [AddressBook!]!
-    products: [ProductInfo!]!
-    product(_id: String!): ProductInfo!
-    service(_id: String!): Service!
-    services: [Service!]!
+`, BuiltIn: false},
+	{Name: "../schema/type/product.graphql", Input: `type ProductInfo {
+    id: String!
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
 }
 
-# 뮤테이션 타입
+input NewProductInfo {
+    name: String!
+    description: String!
+    perAmount: Int!
+    imgUrl: String!
+}
+`, BuiltIn: false},
+	{Name: "../schema/type/service.graphql", Input: `type Service {
+    id: String!
+    products: [ServiceProduct!]!
+    state: Int!
+}
+type ServiceProduct {
+    productID : String!
+    count: Int!
+}
 
-type Mutation {
-    createUser(input: NewUser!): User!
-    createAddressBook(input: NewAddressBook!): AddressBook!
-    createProduct(input: NewProductInfo!): ProductInfo!
-    createService(input: NewService!): Service!
+input NewService {
+    state: Int!
+    products: [NewServiceProduct!]!
+}
+input NewServiceProduct {
+    productID: String!
+    count: Int!
+}`, BuiltIn: false},
+	{Name: "../schema/type/user.graphql", Input: `type User {
+    id: String!
+    name: String!
+    age: Int!
+    phone: String!
+}
+
+
+input NewUser {
+    name: String!
+    age: Int!
+    phone: String!
 }
 
 `, BuiltIn: false},
@@ -1070,8 +1032,8 @@ func (ec *executionContext) fieldContext_Address_request(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _AddressBook__id(ctx context.Context, field graphql.CollectedField, obj *model.AddressBook) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AddressBook__id(ctx, field)
+func (ec *executionContext) _AddressBook_id(ctx context.Context, field graphql.CollectedField, obj *model.AddressBook) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AddressBook_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1101,7 +1063,7 @@ func (ec *executionContext) _AddressBook__id(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AddressBook__id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AddressBook_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AddressBook",
 		Field:      field,
@@ -1255,8 +1217,8 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_User__id(ctx, field)
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "age":
@@ -1320,8 +1282,8 @@ func (ec *executionContext) fieldContext_Mutation_createAddressBook(ctx context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_AddressBook__id(ctx, field)
+			case "id":
+				return ec.fieldContext_AddressBook_id(ctx, field)
 			case "isDefault":
 				return ec.fieldContext_AddressBook_isDefault(ctx, field)
 			case "address":
@@ -1383,8 +1345,8 @@ func (ec *executionContext) fieldContext_Mutation_createProduct(ctx context.Cont
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "productID":
-				return ec.fieldContext_ProductInfo_productID(ctx, field)
+			case "id":
+				return ec.fieldContext_ProductInfo_id(ctx, field)
 			case "name":
 				return ec.fieldContext_ProductInfo_name(ctx, field)
 			case "description":
@@ -1437,9 +1399,9 @@ func (ec *executionContext) _Mutation_createService(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Service)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNService2ᚖmainᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1449,15 +1411,7 @@ func (ec *executionContext) fieldContext_Mutation_createService(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "_id":
-				return ec.fieldContext_Service__id(ctx, field)
-			case "products":
-				return ec.fieldContext_Service_products(ctx, field)
-			case "state":
-				return ec.fieldContext_Service_state(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Service", field.Name)
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	defer func() {
@@ -1474,8 +1428,8 @@ func (ec *executionContext) fieldContext_Mutation_createService(ctx context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Product_count(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Product_count(ctx, field)
+func (ec *executionContext) _ProductInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.ProductInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductInfo_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1488,107 +1442,7 @@ func (ec *executionContext) _Product_count(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Count, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Product_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Product",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Product_product(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Product_product(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Product, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ProductInfo)
-	fc.Result = res
-	return ec.marshalNProductInfo2ᚖmainᚋgraphᚋmodelᚐProductInfo(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Product_product(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Product",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "productID":
-				return ec.fieldContext_ProductInfo_productID(ctx, field)
-			case "name":
-				return ec.fieldContext_ProductInfo_name(ctx, field)
-			case "description":
-				return ec.fieldContext_ProductInfo_description(ctx, field)
-			case "perAmount":
-				return ec.fieldContext_ProductInfo_perAmount(ctx, field)
-			case "imgUrl":
-				return ec.fieldContext_ProductInfo_imgUrl(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ProductInfo", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProductInfo_productID(ctx context.Context, field graphql.CollectedField, obj *model.ProductInfo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductInfo_productID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ProductID, nil
+		return obj.ID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1605,7 +1459,7 @@ func (ec *executionContext) _ProductInfo_productID(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ProductInfo_productID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ProductInfo_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProductInfo",
 		Field:      field,
@@ -1833,8 +1687,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_User__id(ctx, field)
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "age":
@@ -1898,8 +1752,8 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_User__id(ctx, field)
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "age":
@@ -1952,8 +1806,8 @@ func (ec *executionContext) fieldContext_Query_addressBook(ctx context.Context, 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_AddressBook__id(ctx, field)
+			case "id":
+				return ec.fieldContext_AddressBook_id(ctx, field)
 			case "isDefault":
 				return ec.fieldContext_AddressBook_isDefault(ctx, field)
 			case "address":
@@ -2015,8 +1869,8 @@ func (ec *executionContext) fieldContext_Query_addressBooks(ctx context.Context,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_AddressBook__id(ctx, field)
+			case "id":
+				return ec.fieldContext_AddressBook_id(ctx, field)
 			case "isDefault":
 				return ec.fieldContext_AddressBook_isDefault(ctx, field)
 			case "address":
@@ -2067,8 +1921,8 @@ func (ec *executionContext) fieldContext_Query_products(ctx context.Context, fie
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "productID":
-				return ec.fieldContext_ProductInfo_productID(ctx, field)
+			case "id":
+				return ec.fieldContext_ProductInfo_id(ctx, field)
 			case "name":
 				return ec.fieldContext_ProductInfo_name(ctx, field)
 			case "description":
@@ -2123,8 +1977,8 @@ func (ec *executionContext) fieldContext_Query_product(ctx context.Context, fiel
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "productID":
-				return ec.fieldContext_ProductInfo_productID(ctx, field)
+			case "id":
+				return ec.fieldContext_ProductInfo_id(ctx, field)
 			case "name":
 				return ec.fieldContext_ProductInfo_name(ctx, field)
 			case "description":
@@ -2190,8 +2044,8 @@ func (ec *executionContext) fieldContext_Query_service(ctx context.Context, fiel
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_Service__id(ctx, field)
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
 			case "products":
 				return ec.fieldContext_Service_products(ctx, field)
 			case "state":
@@ -2253,8 +2107,8 @@ func (ec *executionContext) fieldContext_Query_services(ctx context.Context, fie
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "_id":
-				return ec.fieldContext_Service__id(ctx, field)
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
 			case "products":
 				return ec.fieldContext_Service_products(ctx, field)
 			case "state":
@@ -2395,8 +2249,8 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Service__id(ctx context.Context, field graphql.CollectedField, obj *model.Service) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Service__id(ctx, field)
+func (ec *executionContext) _Service_id(ctx context.Context, field graphql.CollectedField, obj *model.Service) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Service_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2426,7 +2280,7 @@ func (ec *executionContext) _Service__id(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Service__id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Service_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Service",
 		Field:      field,
@@ -2478,8 +2332,8 @@ func (ec *executionContext) fieldContext_Service_products(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "product":
-				return ec.fieldContext_ServiceProduct_product(ctx, field)
+			case "productID":
+				return ec.fieldContext_ServiceProduct_productID(ctx, field)
 			case "count":
 				return ec.fieldContext_ServiceProduct_count(ctx, field)
 			}
@@ -2533,8 +2387,8 @@ func (ec *executionContext) fieldContext_Service_state(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceProduct_product(ctx context.Context, field graphql.CollectedField, obj *model.ServiceProduct) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ServiceProduct_product(ctx, field)
+func (ec *executionContext) _ServiceProduct_productID(ctx context.Context, field graphql.CollectedField, obj *model.ServiceProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceProduct_productID(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2547,40 +2401,31 @@ func (ec *executionContext) _ServiceProduct_product(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Product, nil
+		return obj.ProductID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ProductInfo)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOProductInfo2ᚖmainᚋgraphᚋmodelᚐProductInfo(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceProduct_product(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceProduct_productID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceProduct",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "productID":
-				return ec.fieldContext_ProductInfo_productID(ctx, field)
-			case "name":
-				return ec.fieldContext_ProductInfo_name(ctx, field)
-			case "description":
-				return ec.fieldContext_ProductInfo_description(ctx, field)
-			case "perAmount":
-				return ec.fieldContext_ProductInfo_perAmount(ctx, field)
-			case "imgUrl":
-				return ec.fieldContext_ProductInfo_imgUrl(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ProductInfo", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2630,8 +2475,8 @@ func (ec *executionContext) fieldContext_ServiceProduct_count(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _User__id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User__id(ctx, field)
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2661,7 +2506,7 @@ func (ec *executionContext) _User__id(ctx context.Context, field graphql.Collect
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_User__id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -4683,42 +4528,6 @@ func (ec *executionContext) unmarshalInputNewAddressBook(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewProduct(ctx context.Context, obj interface{}) (model.NewProduct, error) {
-	var it model.NewProduct
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"productID", "count"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "productID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productID"))
-			it.ProductID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "count":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("count"))
-			it.Count, err = ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewProductInfo(ctx context.Context, obj interface{}) (model.NewProductInfo, error) {
 	var it model.NewProductInfo
 	asMap := map[string]interface{}{}
@@ -4968,9 +4777,9 @@ func (ec *executionContext) _AddressBook(ctx context.Context, sel ast.SelectionS
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("AddressBook")
-		case "_id":
+		case "id":
 
-			out.Values[i] = ec._AddressBook__id(ctx, field, obj)
+			out.Values[i] = ec._AddressBook_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -5066,41 +4875,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
-var productImplementors = []string{"Product"}
-
-func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, obj *model.Product) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, productImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Product")
-		case "count":
-
-			out.Values[i] = ec._Product_count(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "product":
-
-			out.Values[i] = ec._Product_product(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var productInfoImplementors = []string{"ProductInfo"}
 
 func (ec *executionContext) _ProductInfo(ctx context.Context, sel ast.SelectionSet, obj *model.ProductInfo) graphql.Marshaler {
@@ -5111,9 +4885,9 @@ func (ec *executionContext) _ProductInfo(ctx context.Context, sel ast.SelectionS
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ProductInfo")
-		case "productID":
+		case "id":
 
-			out.Values[i] = ec._ProductInfo_productID(ctx, field, obj)
+			out.Values[i] = ec._ProductInfo_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -5393,9 +5167,9 @@ func (ec *executionContext) _Service(ctx context.Context, sel ast.SelectionSet, 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Service")
-		case "_id":
+		case "id":
 
-			out.Values[i] = ec._Service__id(ctx, field, obj)
+			out.Values[i] = ec._Service_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -5435,10 +5209,13 @@ func (ec *executionContext) _ServiceProduct(ctx context.Context, sel ast.Selecti
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ServiceProduct")
-		case "product":
+		case "productID":
 
-			out.Values[i] = ec._ServiceProduct_product(ctx, field, obj)
+			out.Values[i] = ec._ServiceProduct_productID(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "count":
 
 			out.Values[i] = ec._ServiceProduct_count(ctx, field, obj)
@@ -5467,9 +5244,9 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
-		case "_id":
+		case "id":
 
-			out.Values[i] = ec._User__id(ctx, field, obj)
+			out.Values[i] = ec._User_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -6489,13 +6266,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
-}
-
-func (ec *executionContext) marshalOProductInfo2ᚖmainᚋgraphᚋmodelᚐProductInfo(ctx context.Context, sel ast.SelectionSet, v *model.ProductInfo) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ProductInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

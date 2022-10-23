@@ -1,0 +1,28 @@
+
+type AddressBook {
+    id: String!
+    isDefault: Boolean!
+    address: Address!
+}
+
+type Address {
+    receiver: String!
+    address: String!
+    detail: String!
+    pinCode: String!
+    tel: String!
+    request: String!
+}
+
+input NewAddressBook {
+    isDefault: Boolean!
+    address: NewAddress!
+}
+input NewAddress {
+    receiver: String!
+    address: String!
+    detail: String!
+    pinCode: String!
+    tel: String!
+    request: String!
+}

@@ -1,0 +1,10 @@
+type Query {
+    user(_id: String!): User!
+    users: [User!]!
+    addressBook(_id: String!): AddressBook!
+    addressBooks: [AddressBook!]!
+    products: [ProductInfo!]!
+    product(_id: String!): ProductInfo!
+    service(_id: String!): Service!
+    services: [Service!]!
+}
